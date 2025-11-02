@@ -10,6 +10,7 @@ export class BookingService {
       serviceId: string;
       date: Date;
       startTime: string;
+      paymentType?: "CASH" | "CARD";
       notes?: string;
     }
   ) {
@@ -52,6 +53,7 @@ export class BookingService {
           date: data.date,
           startTime: data.startTime,
           endTime: endTime,
+          paymentType: data.paymentType,
           notes: data.notes,
           status: "PENDING",
         },
@@ -80,6 +82,9 @@ export class BookingService {
         },
       });
 
+      // Create notifications after booking is created
+      // Notification will be created via controller to avoid circular dependency
+      
       return booking;
     });
   }
@@ -490,6 +495,34 @@ export class BookingService {
       .padStart(2, "0")}`;
   }
 
+  // Helper function to generate all time slots between startTime and endTime (in 20-minute intervals)
+  private generateTimeSlotsBetween(startTime: string, endTime: string): string[] {
+    const slots: string[] = [];
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    
+    let currentHour = startHour;
+    let currentMin = startMin;
+    const endTotalMinutes = endHour * 60 + endMin;
+    
+    while (true) {
+      const currentTotalMinutes = currentHour * 60 + currentMin;
+      if (currentTotalMinutes >= endTotalMinutes) break;
+      
+      const timeStr = `${currentHour.toString().padStart(2, "0")}:${currentMin.toString().padStart(2, "0")}`;
+      slots.push(timeStr);
+      
+      // Increment by 20 minutes
+      currentMin += 20;
+      if (currentMin >= 60) {
+        currentMin = 0;
+        currentHour++;
+      }
+    }
+    
+    return slots;
+  }
+
   private async checkAvailability(
     barberId: string,
     date: Date,
@@ -500,15 +533,22 @@ export class BookingService {
     // Check if booking date is in the past
     // Compare only dates (not datetime) to allow same day bookings
     const now = new Date();
-    const bookingDateOnly = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
+    
+    // Normalize date to avoid timezone issues - extract only date parts
+    // Use UTC methods to avoid timezone issues, then convert to local
+    const bookingYear = date.getFullYear();
+    const bookingMonth = date.getMonth();
+    const bookingDay = date.getDate();
+    
+    // Create booking date at midnight (local time)
+    const bookingDateOnly = new Date(bookingYear, bookingMonth, bookingDay, 0, 0, 0, 0);
+    
+    // Create today at midnight (local time)
     const todayOnly = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
+      0, 0, 0, 0
     );
     
     // If booking date is before today, it's invalid
@@ -523,10 +563,39 @@ export class BookingService {
     // If booking date is today, check if the time is in the past
     if (bookingDateOnly.getTime() === todayOnly.getTime()) {
       const [hours, minutes] = startTime.split(':').map(Number);
-      const bookingDateTime = new Date(date);
-      bookingDateTime.setHours(hours, minutes, 0, 0);
       
-      if (bookingDateTime <= now) {
+      // Validate time format
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return {
+          isAvailable: false,
+          reason: "Noto'g'ri vaqt formati. Vaqtni to'g'ri kiriting.",
+        };
+      }
+      
+      // Create booking datetime using today's date with selected time (local time)
+      const bookingDateTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        hours,
+        minutes,
+        0,
+        0
+      );
+      
+      // Get current time with seconds/milliseconds set to 0 for fair comparison
+      const nowRounded = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        now.getHours(),
+        now.getMinutes(),
+        0,
+        0
+      );
+      
+      // Compare with current datetime - booking time must be in the future
+      if (bookingDateTime <= nowRounded) {
         return {
           isAvailable: false,
           reason:

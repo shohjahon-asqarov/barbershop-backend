@@ -37,6 +37,7 @@ const createBookingSchema = z.object({
     startTime: z
       .string()
       .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
+    paymentType: z.enum(["CASH", "CARD"]).optional(),
     notes: z.string().optional(),
   }),
 });

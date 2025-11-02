@@ -271,7 +271,7 @@ export class BarberService {
       latitude: number;
       longitude: number;
       image: string;
-      portfolio: string[];
+      portfolio: any; // JSON type - array of PortfolioItem
       isAvailable: boolean;
       workingDays: string[];
     }>
@@ -290,7 +290,7 @@ export class BarberService {
       latitude: number;
       longitude: number;
       image: string;
-      portfolio: string[];
+      portfolio: any; // JSON type - array of PortfolioItem
       isAvailable: boolean;
       workingDays: string[];
     }>

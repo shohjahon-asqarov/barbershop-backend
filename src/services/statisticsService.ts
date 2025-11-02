@@ -108,6 +108,43 @@ export class StatisticsService {
       };
     });
 
+    // Payment type statistics - faqat COMPLETED bookings
+    const cashBookings = completedBookings.filter(
+      (b) => b.paymentType === "CASH"
+    );
+    const cardBookings = completedBookings.filter(
+      (b) => b.paymentType === "CARD"
+    );
+
+    const cashRevenue = cashBookings.reduce(
+      (sum, b) => sum + (b.service?.price || 0),
+      0
+    );
+    const cardRevenue = cardBookings.reduce(
+      (sum, b) => sum + (b.service?.price || 0),
+      0
+    );
+
+    const paymentTypeStats = {
+      cash: {
+        count: cashBookings.length,
+        revenue: cashRevenue,
+        percentage:
+          completedBookings.length > 0
+            ? (cashBookings.length / completedBookings.length) * 100
+            : 0,
+      },
+      card: {
+        count: cardBookings.length,
+        revenue: cardRevenue,
+        percentage:
+          completedBookings.length > 0
+            ? (cardBookings.length / completedBookings.length) * 100
+            : 0,
+      },
+      total: completedBookings.length,
+    };
+
     return {
       revenue: {
         current: currentMonthRevenue,
@@ -139,6 +176,7 @@ export class StatisticsService {
         returningClients: 0, // To be calculated based on history
         averageRating: avgRating.toFixed(1),
       },
+      paymentTypes: paymentTypeStats,
     };
   }
 

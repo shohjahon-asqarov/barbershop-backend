@@ -8,6 +8,7 @@ import {
 } from "../validators/barberValidators";
 import {
   validateAddPortfolio,
+  validateUpdatePortfolio,
   validateRemovePortfolio,
 } from "../validators/barberValidators";
 
@@ -306,8 +307,8 @@ router.post(
 /**
  * @swagger
  * /barbers/me/portfolio:
- *   delete:
- *     summary: Remove portfolio image by index or url
+ *   patch:
+ *     summary: Update portfolio item
  *     tags: [Barbers]
  *     security:
  *       - bearerAuth: []
@@ -317,11 +318,52 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - id
  *             properties:
- *               index:
- *                 type: number
- *               url:
+ *               id:
  *                 type: string
+ *                 format: uuid
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated portfolio array
+ */
+router.patch(
+  "/me/portfolio",
+  authenticate,
+  authorize("BARBER", "ADMIN"),
+  validateUpdatePortfolio,
+  barberController.updatePortfolioItem
+);
+
+/**
+ * @swagger
+ * /barbers/me/portfolio:
+ *   delete:
+ *     summary: Remove portfolio item by id
+ *     tags: [Barbers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 format: uuid
  *     responses:
  *       200:
  *         description: Updated portfolio array
